@@ -1,0 +1,22 @@
+# TLS certificate for Grafana, served by Traefik through the Ingress in the same namespace.
+# The domain comes from the dns_label of the Terraform public IP.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  secretName: grafana-tls
+  commonName: monitoring-groupe3.polandcentral.cloudapp.azure.com
+  dnsNames:
+    - monitoring-groupe3.polandcentral.cloudapp.azure.com
+  duration: 2160h # 90 days
+  renewBefore: 360h # 15 days
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef:
+    name: selfsigned
+    kind: ClusterIssuer
+    group: cert-manager.io

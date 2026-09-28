@@ -1,0 +1,7 @@
+# Signs each certificate with its own private key: no CA, the browser will warn
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned
+spec:
+  selfSigned: {}
