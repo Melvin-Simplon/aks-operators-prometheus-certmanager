@@ -1,5 +1,12 @@
+SHELL := /usr/bin/env bash
+.SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
 
-.PHONY: help
-help: ## Affiche les cibles disponibles
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
+TF_DIR   ?= terraform
+LOG_FILE ?= .logs/terraform.log
+
+# Exported, never passed as positional args: scripts read the environment
+export TF_DIR LOG_FILE
+
+include makefiles/terraform.mk
+include makefiles/common.mk

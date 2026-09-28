@@ -11,3 +11,6 @@ tfplan.bin
 
 # Kubeconfig
 kubeconfig*
+
+# Run logs
+.logs/
