@@ -5,6 +5,8 @@
 *.tfvars
 !*.tfvars.example
 crash.log
+*.tfplan
+tfplan.bin
 .terraform.tfstate.lock.info
 
 # Kubeconfig
