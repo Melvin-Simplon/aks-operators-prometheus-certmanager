@@ -1,0 +1,27 @@
+# Grafana over HTTPS through Traefik, with the self-signed certificate from cert-manager
+# (k8s/cert-manager/certificate-grafana.yaml, Secret monitoring/grafana-tls).
+# The Service is created by the kube-prometheus-stack release.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana
+  namespace: monitoring
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - monitoring-groupe3.polandcentral.cloudapp.azure.com
+      secretName: grafana-tls
+  rules:
+    - host: monitoring-groupe3.polandcentral.cloudapp.azure.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kube-prometheus-stack-grafana
+                port:
+                  number: 80
