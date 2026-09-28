@@ -39,7 +39,8 @@
 │   ├── k8s-apply.sh          Applies k8s/<component>/, waits for Ready resources
 │   ├── status.sh             Read-only health report behind `make status`
 │   ├── grafana.sh            Opens Grafana, admin password copied to the clipboard
-│   └── traefik-dashboard.sh  Port-forward to the Traefik dashboard, never exposed
+│   ├── open-ui.sh            Port-forwards to Prometheus, Alertmanager, Traefik, never exposed
+│   └── browser.sh            Shared helper: opens a URL in the browser
 ├── terraform/                Azure side
 │   ├── imports.tf            Brings the existing AKS cluster under Terraform
 │   ├── main.tf               Cluster, monitoring node pool, static public IP
@@ -53,8 +54,8 @@
 ├── k8s/                      Custom manifests applied once the operators run
 │   ├── namespaces/           Namespaces needed before the Helm releases
 │   ├── cert-manager/         Self-signed ClusterIssuer, Grafana certificate
-│   ├── monitoring/           Prometheus, Alertmanager, ServiceMonitors, rules
-│   ├── grafana/              Dashboards
+│   ├── monitoring/           Alert rules for pods and certificates (PrometheusRule)
+│   ├── grafana/              Dashboards as JSON, loaded by kustomize as ConfigMaps
 │   └── ingress/              Grafana Ingress served by Traefik
 └── docs/
     └── CONSIGNES.md          The brief
