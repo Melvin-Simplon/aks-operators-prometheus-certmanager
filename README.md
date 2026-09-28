@@ -28,7 +28,7 @@
 ```
 .
 ├── Makefile                  Entry point, `make` opens the interactive menu
-├── makefiles/                One fragment per component, included by the Makefile
+├── makefiles/                One fragment per menu section: infrastructure, deploy, access, checks
 ├── scripts/                  The logic behind each target
 │   ├── lib.sh                Shared helpers: Ansible style output, log file
 │   ├── menu.sh               Interactive menu built from the make targets
@@ -38,6 +38,7 @@
 │   ├── helm-release.sh       Idempotent install or upgrade of one Helm release
 │   ├── k8s-apply.sh          Applies k8s/<component>/, waits for Ready resources
 │   ├── status.sh             Read-only health report behind `make status`
+│   ├── grafana.sh            Opens Grafana, admin password copied to the clipboard
 │   └── traefik-dashboard.sh  Port-forward to the Traefik dashboard, never exposed
 ├── terraform/                Azure side
 │   ├── imports.tf            Brings the existing AKS cluster under Terraform
