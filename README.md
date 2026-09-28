@@ -27,10 +27,11 @@
 
 ```
 .
-├── Makefile                  Entry point, `make` lists every target
+├── Makefile                  Entry point, `make` opens the interactive menu
 ├── makefiles/                One fragment per component, included by the Makefile
 ├── scripts/                  The logic behind each target
 │   ├── lib.sh                Shared helpers: Ansible style output, log file
+│   ├── menu.sh               Interactive menu built from the make targets
 │   ├── kube.sh               Shared Kubernetes helpers: context, reachability
 │   ├── helm.sh               Shared Helm helpers: release definition, config checksum
 │   ├── terraform.sh          init, fmt, validate, plan, confirmed apply
