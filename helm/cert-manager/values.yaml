@@ -1,0 +1,50 @@
+# cert-manager runs on the system pool: the monitoring pool is tainted and it has no toleration
+
+crds:
+  enabled: true
+  # Keep the CRDs (and every Certificate) if the release is uninstalled
+  keep: true
+
+global:
+  leaderElection:
+    # Default is kube-system, which is managed by AKS
+    namespace: cert-manager
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+
+webhook:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+
+cainjector:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
+startupapicheck:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 64Mi
+
+prometheus:
+  enabled: true
+  servicemonitor:
+    # Turned on once the Prometheus operator CRDs are installed
+    enabled: false

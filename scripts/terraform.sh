@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Terraform workflow: init, fmt, validate, plan, confirm, apply.
 # Usage: terraform.sh check|plan|apply
-# Env: TF_DIR, LOG_FILE, AUTO_APPROVE=1 to skip the confirmation (CI)
+# Env: TF_DIR, LOG_DIR, AUTO_APPROVE=1 to skip the confirmation (CI)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOST_LABEL="terraform"
+LOG_FILE="${LOG_DIR:-.logs}/terraform.log"
 # shellcheck source=scripts/lib.sh
 source "${SCRIPT_DIR}/lib.sh"
 
