@@ -1,0 +1,55 @@
+# Alerts on the certificates managed by cert-manager.
+# Metrics come from the cert-manager ServiceMonitor: the namespace of the certificate is in
+# exported_namespace, "namespace" is the one of the cert-manager pod.
+# Certificates are renewed 15 days before expiry (renewBefore), so under 7 days left means
+# the renewal is failing.
+# A certificate never issued reports an expiration of 0: it is caught by CertificateNotReady,
+# the expiry rules skip it. Series are grouped by certificate so an alert keeps its identity
+# when the cert-manager pod changes.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: certificates
+  namespace: monitoring
+spec:
+  groups:
+    - name: certificates
+      rules:
+        - alert: CertManagerDown
+          expr: absent(up{job="cert-manager"} == 1)
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: cert-manager is down
+            description: No cert-manager controller has been scraped for 10 minutes, certificates are no longer renewed.
+
+        - alert: CertificateNotReady
+          expr: max by (exported_namespace, name) (certmanager_certificate_ready_status{condition="True"}) == 0
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Certificate {{ $labels.exported_namespace }}/{{ $labels.name }} is not ready"
+            description: "The certificate has not been Ready for 10 minutes: its Secret may be missing or outdated. Check with kubectl describe certificate -n {{ $labels.exported_namespace }} {{ $labels.name }}."
+
+        - alert: CertificateExpiringSoon
+          expr: |
+            max by (exported_namespace, name) (certmanager_certificate_expiration_timestamp_seconds > 0)
+              - time() < 7 * 86400
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "Certificate {{ $labels.exported_namespace }}/{{ $labels.name }} expires soon"
+            description: "It expires in {{ $value | humanizeDuration }} although it should have been renewed 15 days before expiry."
+
+        - alert: CertificateExpired
+          expr: |
+            max by (exported_namespace, name) (certmanager_certificate_expiration_timestamp_seconds > 0)
+              - time() <= 0
+          labels:
+            severity: critical
+          annotations:
+            summary: "Certificate {{ $labels.exported_namespace }}/{{ $labels.name }} has expired"
+            description: Clients now reject the TLS connection.
