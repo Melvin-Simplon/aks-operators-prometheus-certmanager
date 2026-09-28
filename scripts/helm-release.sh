@@ -12,10 +12,11 @@ HOST_LABEL="helm"
 LOG_FILE="${LOG_DIR:-.logs}/helm.log"
 # shellcheck source=scripts/lib.sh
 source "${SCRIPT_DIR}/lib.sh"
+# shellcheck source=scripts/kube.sh
+source "${SCRIPT_DIR}/kube.sh"
 
-: "${KUBE_CONTEXT:?KUBE_CONTEXT must be set}"
 : "${HELM_TIMEOUT:=5m}"
-readonly KUBE_CONTEXT HELM_TIMEOUT
+readonly HELM_TIMEOUT
 
 usage() {
     printf 'Usage: %s <release>\n' "$(basename "$0")" >&2
@@ -32,16 +33,6 @@ load_release() {
     source "${RELEASE_ENV}"
     [[ -n "${CHART:-}" && -n "${VERSION:-}" && -n "${NAMESPACE:-}" ]] \
         || fatal "${RELEASE_ENV} must define CHART, VERSION and NAMESPACE"
-}
-
-check_cluster() {
-    task "kubernetes : cluster is reachable"
-    if kubectl --context "${KUBE_CONTEXT}" get --raw=/readyz --request-timeout=10s > /dev/null 2>&1; then
-        issue desired reachable "context ${KUBE_CONTEXT}"
-        count checked
-    else
-        unreachable "cannot reach the API server of context ${KUBE_CONTEXT}"
-    fi
 }
 
 # Prints the checksum of everything that defines the release
