@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# Interactive menu of the make targets, grouped by section (##@) and built from the
+# Interactive menu of the make targets, built from the "##@ section" and
 # "target: ## description" lines, so it never drifts from the real targets.
-# Without a terminal it only prints the list.
+# Two levels: the main menu lists the sections, each section opens a sub-menu of its targets.
+# Without a terminal it only prints the full list.
 # Usage: menu.sh <makefile> [<makefile>...]   (the Makefile passes $(MAKEFILE_LIST))
-# Env: MAKE, NO_COLOR
+# Env: MAKE, KUBE_CONTEXT, DOMAIN, NO_COLOR
 set -euo pipefail
+shopt -s extglob
 
 : "${MAKE:=make}"
 
@@ -13,6 +15,7 @@ readonly SECTION_ORDER=("Azure infrastructure" "Deploy the stack" "Access" "Chec
 # One accent color (256 color code, purple) and a grey for descriptions
 readonly ACCENT=141
 readonly MUTED=245
+readonly WARNING=214
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
     COLOR=true
@@ -23,7 +26,10 @@ fi
 SECTIONS=()
 declare -A TARGETS_OF=()
 declare -A DESCRIPTION_OF=()
+MENU_SECTIONS=()
 MENU_TARGETS=()
+TARGETS=()
+BANNER_LINES=()
 
 usage() {
     printf 'Usage: %s <makefile> [<makefile>...]\n' "$(basename "$0")" >&2
@@ -108,14 +114,32 @@ mapfile -t ART <<'EOF'
 EOF
 readonly ART
 
-# Width of a menu line without colors: indent, number, target column, description
-menu_width() {
-    local target width=0 line_width
-    for target in "${!DESCRIPTION_OF[@]}"; do
-        line_width=$(( 26 + ${#DESCRIPTION_OF[${target}]} ))
-        (( line_width > width )) && width="${line_width}"
+# "Menu" title, printed above the art and the menu with the same gradient
+mapfile -t BANNER <<'EOF'
+██▄  ▄██  ▄▄▄  ▄▄ ▄▄ ▄▄▄▄▄ ▄▄▄▄▄ ▄▄ ▄▄    ▄▄▄▄▄
+██ ▀▀ ██ ██▀██ ██▄█▀ ██▄▄  ██▄▄  ██ ██    ██▄▄
+██    ██ ██▀██ ██ ██ ██▄▄▄ ██    ██ ██▄▄▄ ██▄▄▄
+
+EOF
+readonly BANNER
+
+# gradient_row <row> <row count> <text>: bold, colored with the gradient step of that row
+gradient_row() {
+    local color="${ART_GRADIENT[$1 * ${#ART_GRADIENT[@]} / $2]:-${ACCENT}}"
+    if [[ "${COLOR}" == "true" ]]; then
+        printf '\e[1;38;5;%sm%s\e[0m' "${color}" "$3"
+    else
+        printf '%s' "$3"
+    fi
+}
+
+# banner_lines: fills BANNER_LINES with the colored "Menu" title, one entry per row
+banner_lines() {
+    local i
+    BANNER_LINES=()
+    for (( i = 0; i < ${#BANNER[@]}; i++ )); do
+        BANNER_LINES+=("$(gradient_row "${i}" "${#BANNER[@]}" "${BANNER[i]}")")
     done
-    printf '%s' "${width}"
 }
 
 # art_row <row> <text>: bold, colored with the gradient step of that row
@@ -128,33 +152,52 @@ art_row() {
     fi
 }
 
-# Prints the numbered menu, the art on the left, and fills MENU_TARGETS (index = number - 1)
-print_menu() {
-    local section target number=0 targets=() lines=() i rows columns show_art=false blank
-    MENU_TARGETS=()
+# Quick infra facts under the title, read once when the menu opens (see load_infra_info)
+INFO_CLUSTER=""
+INFO_IP=""
 
-    while IFS= read -r section; do
-        (( ${#lines[@]} > 0 )) && lines+=("")
-        lines+=("$(heading "${section}")")
-        read -ra targets <<< "${TARGETS_OF[${section}]}"
-        for target in "${targets[@]}"; do
-            number=$(( number + 1 ))
-            MENU_TARGETS+=("${target}")
-            lines+=("$(printf ' %s%2d%s  %-18s %s%s%s' \
-                "$(fg "${ACCENT}")" "${number}" "$(reset)" "${target}" \
-                "$(fg "${MUTED}")" "${DESCRIPTION_OF[${target}]}" "$(reset)")")
-        done
-    done < <(ordered_sections)
-
-    columns="$(tput cols 2> /dev/null || printf '80')"
-    if (( columns >= 2 + ART_WIDTH + 3 + $(menu_width) )); then
-        show_art=true
+load_infra_info() {
+    local nodes ready
+    if nodes="$(kubectl --context "${KUBE_CONTEXT:-}" get nodes --no-headers --request-timeout=3s 2> /dev/null)"; then
+        ready="$(grep -c ' Ready ' <<< "${nodes}" || true)"
+        INFO_CLUSTER="${KUBE_CONTEXT:-?}, ${ready}/$(grep -c . <<< "${nodes}") nodes ready"
+    else
+        INFO_CLUSTER="$(fg "${WARNING}")${KUBE_CONTEXT:-?} unreachable$(reset)"
     fi
+    INFO_IP="$(getent hosts "${DOMAIN:-}" 2> /dev/null | awk '{ print $1; exit }')"
+    : "${INFO_IP:=unknown}"
+}
+
+# info_line <label> <value>
+info_line() {
+    printf ' %s%-8s%s %s' "$(fg "${ACCENT}")" "$1" "$(reset)" "$2"
+}
+
+# render <line>...: prints the title, the infra facts, then the lines, as the right column next to the art
+# when the terminal is wide enough
+render() {
+    local lines=() line plain width=0 i rows columns blank offset
+    banner_lines
+    lines=("${BANNER_LINES[@]}"
+        "$(info_line Cluster "${INFO_CLUSTER}")"
+        "$(info_line Grafana "https://${DOMAIN:-?}")"
+        "$(info_line "LB IP" "${INFO_IP}")"
+        "" "$@")
+    for line in "${lines[@]}"; do
+        plain="${line//$'\e'\[*([0-9;])m/}"
+        (( ${#plain} > width )) && width="${#plain}"
+    done
+    columns="$(tput cols 2> /dev/null || printf '80')"
 
     printf '\n'
-    if [[ "${show_art}" == "false" ]]; then
+    if (( columns < 2 + ART_WIDTH + 3 + width )); then
         printf '  %s\n' "${lines[@]}"
     else
+        # Center the menu vertically next to the art
+        offset=$(( (${#ART[@]} - ${#lines[@]}) / 2 ))
+        if (( offset > 0 )); then
+            for (( i = 0; i < offset; i++ )); do lines=("" "${lines[@]}"); done
+        fi
         rows=$(( ${#lines[@]} > ${#ART[@]} ? ${#lines[@]} : ${#ART[@]} ))
         # Padding under the art: braille blanks (U+2800), the same glyph as the art
         blank=""
@@ -166,20 +209,84 @@ print_menu() {
     printf '\n'
 }
 
-# Prints the chosen target, or nothing to quit
-read_choice() {
-    local answer
+# item_line <number> <name> <description>: one numbered entry
+item_line() {
+    printf ' %s%2d%s  %-20s %s%s%s' "$(fg "${ACCENT}")" "$1" "$(reset)" "$2" "$(fg "${MUTED}")" "$3" "$(reset)"
+}
+
+# section_targets <section>: fills TARGETS with the targets of the section
+section_targets() {
+    read -ra TARGETS <<< "${TARGETS_OF[$1]}"
+}
+
+# Main menu: one entry per section, listing its targets. Fills MENU_SECTIONS (index = number - 1)
+# Main menu: one entry per section. Fills MENU_SECTIONS (index = number - 1)
+print_main() {
+    local section lines=() number=0
+    MENU_SECTIONS=()
+    while IFS= read -r section; do
+        number=$(( number + 1 ))
+        MENU_SECTIONS+=("${section}")
+        (( number > 1 )) && lines+=("")
+        lines+=("$(printf ' %s%2d%s  %s' "$(fg "${ACCENT}")" "${number}" "$(reset)" "$(heading "${section}")")")
+    done < <(ordered_sections)
+    render "${lines[@]}"
+}
+
+# Sub-menu of one section. Fills MENU_TARGETS (index = number - 1)
+print_section() {
+    local target lines=() number=0
+    MENU_TARGETS=()
+    lines+=("$(heading "$1")" "")
+    section_targets "$1"
+    for target in "${TARGETS[@]}"; do
+        number=$(( number + 1 ))
+        MENU_TARGETS+=("${target}")
+        lines+=("$(item_line "${number}" "${target}" "${DESCRIPTION_OF[${target}]}")")
+    done
+    render "${lines[@]}"
+}
+
+# Full list without numbers, for a run without terminal (CI, docs)
+print_all() {
+    local section target
+    while IFS= read -r section; do
+        printf '\n  %s\n' "${section}"
+        section_targets "${section}"
+        for target in "${TARGETS[@]}"; do
+            printf '    %-20s %s\n' "${target}" "${DESCRIPTION_OF[${target}]}"
+        done
+    done < <(ordered_sections)
+    printf '\n'
+}
+
+# ask <max> <main|sub>: prints the chosen number, "b" (back, sub-menu only) or "q" (quit).
+# Enter alone quits the main menu and goes back from a sub-menu.
+ask() {
+    local max="$1" level="$2" answer prompt
+    if [[ "${level}" == "main" ]]; then
+        prompt="Choose a theme (q to quit): "
+    else
+        prompt="Choose a command (b to go back, q to quit): "
+    fi
     while true; do
-        read -r -p "  $(fg "${ACCENT}")Choose a number (q to quit): $(reset)" answer < /dev/tty || return 0
+        read -r -p "  $(fg "${ACCENT}")${prompt}$(reset)" answer < /dev/tty || { printf 'q'; return 0; }
         answer="${answer//[[:space:]]/}"
-        case "${answer}" in
-            q | Q | "") return 0 ;;
+        case "${answer,,}" in
+            q) printf 'q'; return 0 ;;
+            "")
+                if [[ "${level}" == "main" ]]; then printf 'q'; else printf 'b'; fi
+                return 0
+                ;;
+            b)
+                if [[ "${level}" == "sub" ]]; then printf 'b'; return 0; fi
+                ;;
         esac
-        if [[ "${answer}" =~ ^[0-9]+$ ]] && (( answer >= 1 && answer <= ${#MENU_TARGETS[@]} )); then
-            printf '%s' "${MENU_TARGETS[answer - 1]}"
+        if [[ "${answer}" =~ ^[0-9]+$ ]] && (( answer >= 1 && answer <= max )); then
+            printf '%s' "${answer}"
             return 0
         fi
-        printf '  %sNo target %s, pick 1 to %d.%s\n' "$(fg "${MUTED}")" "${answer}" "${#MENU_TARGETS[@]}" "$(reset)" >&2
+        printf '  %sNothing at %s, pick 1 to %d.%s\n' "$(fg "${MUTED}")" "${answer}" "${max}" "$(reset)" >&2
     done
 }
 
@@ -187,7 +294,28 @@ run_target() {
     printf '\n  %s> make %s%s\n' "$(fg "${ACCENT}")" "$1" "$(reset)"
     # Ctrl+C stops the target (port-forward...) and comes back to the menu
     "${MAKE}" --no-print-directory "$1" || true
-    read -r -p "  $(fg "${MUTED}")Press Enter to go back to the menu $(reset)" _ < /dev/tty || true
+    read -r -p "  $(fg "${MUTED}")Press Enter to go back $(reset)" _ < /dev/tty || true
+}
+
+# clear_screen: only in the interactive loop, outside a terminal clear prints escape codes
+# and it fails (set -e) when TERM is unset
+clear_screen() {
+    clear 2> /dev/null || true
+}
+
+# sub_menu <section>: loops on the targets of the section. Returns 1 when the user quits.
+sub_menu() {
+    local choice
+    while true; do
+        clear_screen
+        print_section "$1"
+        choice="$(ask "${#MENU_TARGETS[@]}" sub)"
+        case "${choice}" in
+            q) return 1 ;;
+            b) return 0 ;;
+        esac
+        run_target "${MENU_TARGETS[choice - 1]}"
+    done
 }
 
 main() {
@@ -195,20 +323,19 @@ main() {
     parse_targets "$@"
 
     if [[ ! -t 0 || ! -t 1 ]]; then
-        print_menu
+        print_all
         return 0
     fi
 
     trap 'printf "\n"' INT
-    local target
+    load_infra_info
+    local choice
     while true; do
-        # Only here, in the interactive loop: outside a terminal clear prints escape codes,
-        # and it fails (set -e) when TERM is unset
-        clear 2> /dev/null || true
-        print_menu
-        target="$(read_choice)"
-        [[ -n "${target}" ]] || break
-        run_target "${target}"
+        clear_screen
+        print_main
+        choice="$(ask "${#MENU_SECTIONS[@]}" main)"
+        [[ "${choice}" == "q" ]] && break
+        sub_menu "${MENU_SECTIONS[choice - 1]}" || break
     done
 }
 
