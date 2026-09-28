@@ -12,6 +12,8 @@ LOG_FILE="${LOG_DIR:-.logs}/grafana.log"
 source "${SCRIPT_DIR}/lib.sh"
 # shellcheck source=scripts/kube.sh
 source "${SCRIPT_DIR}/kube.sh"
+# shellcheck source=scripts/browser.sh
+source "${SCRIPT_DIR}/browser.sh"
 
 : "${DOMAIN:?DOMAIN must be set}"
 readonly DOMAIN
@@ -60,30 +62,9 @@ copy_password() {
     count copied
 }
 
-# Prints the first browser opener available, or nothing
-browser_cmd() {
-    local cmd
-    for cmd in wslview explorer.exe xdg-open open; do
-        if command -v "${cmd}" > /dev/null; then
-            printf '%s' "${cmd}"
-            return 0
-        fi
-    done
-}
-
 open_browser() {
     task "browser : open grafana"
-    local opener
-    opener="$(browser_cmd)"
-    if [[ "${NO_BROWSER:-0}" == "1" || -z "${opener}" ]]; then
-        issue skip skipping "open ${URL} yourself"
-        count skipped
-        return 0
-    fi
-    # explorer.exe returns 1 even when the browser opens
-    "${opener}" "${URL}" > /dev/null 2>&1 || true
-    issue change opened "${URL}"
-    count opened
+    open_url "${URL}"
     detail "self-signed certificate: accept the browser warning"
 }
 
