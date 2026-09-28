@@ -1,0 +1,96 @@
+<br/>
+
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=kubernetes,azure,terraform,prometheus,grafana,bash&perline=6" alt="Kubernetes, Azure, Terraform, Prometheus, Grafana, Bash" />
+</p>
+
+<h1 align="center">Cluster Monitoring with Operators on AKS</h1>
+
+<p align="center">
+  <i>Prometheus, Alertmanager and Grafana deployed by the Prometheus operator, TLS certificates issued by cert-manager, Grafana exposed through an HTTPS reverse proxy</i>
+</p>
+
+<p align="center"><sub>Contributors</sub></p>
+
+<p align="center">
+  <a href="https://github.com/Melvin-Simplon/aks-operators-prometheus-certmanager/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=Melvin-Simplon/aks-operators-prometheus-certmanager" alt="Contributors" />
+  </a>
+</p>
+
+<br/>
+
+---
+
+<br/>
+
+## Project layout
+
+```
+.
+├── Makefile                  Entry point, `make` lists every target
+├── makefiles/                One fragment per component, included by the Makefile
+├── scripts/                  The logic behind each target
+│   ├── lib.sh                Shared helpers: Ansible style output, log file
+│   ├── terraform.sh          init, fmt, validate, plan, confirmed apply
+│   └── helm-release.sh       Idempotent install or upgrade of one Helm release
+├── terraform/                Azure side
+│   ├── imports.tf            Brings the existing AKS cluster under Terraform
+│   ├── main.tf               Cluster, monitoring node pool, static public IP
+│   ├── variables.tf
+│   ├── outputs.tf
+│   └── versions.tf
+├── helm/                     One folder per Helm release
+│   ├── cert-manager/         release.env (chart, version, namespace) + values.yaml
+│   ├── kube-prometheus-stack/
+│   └── ingress-nginx/
+├── k8s/                      Custom manifests applied once the operators run
+│   ├── cert-manager/         Issuers and certificates
+│   ├── monitoring/           Prometheus, Alertmanager, ServiceMonitors, rules
+│   ├── grafana/              Dashboards
+│   └── ingress/              HTTPS reverse proxy
+└── docs/
+    └── CONSIGNES.md          The brief
+```
+
+Logs of every run are appended to `.logs/`, one file per script.
+
+<br/>
+
+---
+
+<br/>
+
+## Documentation
+
+**Azure and Terraform**
+
+- [Azure Kubernetes Service](https://learn.microsoft.com/en-us/azure/aks/)
+- [Static public IP for the AKS load balancer](https://learn.microsoft.com/en-us/azure/aks/static-ip)
+- [Terraform `import` block](https://developer.hashicorp.com/terraform/language/import)
+- [`azurerm_kubernetes_cluster`](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster)
+- [`azurerm_kubernetes_cluster_node_pool`](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster_node_pool)
+- [`azurerm_public_ip`](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/public_ip)
+
+**Helm**
+
+- [`helm upgrade`](https://helm.sh/docs/helm/helm_upgrade/)
+
+**cert-manager**
+
+- [Install with Helm](https://cert-manager.io/docs/installation/helm/)
+- [SelfSigned issuer](https://cert-manager.io/docs/configuration/selfsigned/)
+
+**Monitoring**
+
+- [Prometheus operator](https://prometheus-operator.dev/)
+- [kube-prometheus-stack chart](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
+- [Grafana](https://grafana.com/docs/grafana/latest/)
+
+<br/>
+
+---
+
+<br/>
+
+<p align="center"><sub>Brief in <a href="docs/CONSIGNES.md">docs/CONSIGNES.md</a></sub></p>
