@@ -1,0 +1,40 @@
+# Traefik runs on the system pool: the monitoring pool is tainted and it has no toleration
+
+deployment:
+  replicas: 1
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+
+core:
+  # Mitigates GHSA-g55h-rg46-x9c5, needs Traefik v3.7.11 or later
+  strictTLSOptions: true
+
+ports:
+  web:
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+service:
+  annotations:
+    # Static IP created by Terraform (terraform/main.tf), kept when this Service is recreated.
+    # It lives in the node resource group, so no resource group annotation is needed.
+    service.beta.kubernetes.io/azure-pip-name: pip-ingress
+
+ingressRoute:
+  dashboard:
+    # Only on the internal "traefik" entrypoint, never exposed by the LoadBalancer.
+    # Reach it with `make traefik-dashboard` (kubectl port-forward).
+    enabled: true
