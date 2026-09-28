@@ -32,8 +32,10 @@
 ├── makefiles/                One fragment per component, included by the Makefile
 ├── scripts/                  The logic behind each target
 │   ├── lib.sh                Shared helpers: Ansible style output, log file
+│   ├── kube.sh               Shared Kubernetes helpers: context, reachability
 │   ├── terraform.sh          init, fmt, validate, plan, confirmed apply
-│   └── helm-release.sh       Idempotent install or upgrade of one Helm release
+│   ├── helm-release.sh       Idempotent install or upgrade of one Helm release
+│   └── k8s-apply.sh          Applies k8s/<component>/, waits for Ready resources
 ├── terraform/                Azure side
 │   ├── imports.tf            Brings the existing AKS cluster under Terraform
 │   ├── main.tf               Cluster, monitoring node pool, static public IP
@@ -43,12 +45,13 @@
 ├── helm/                     One folder per Helm release
 │   ├── cert-manager/         release.env (chart, version, namespace) + values.yaml
 │   ├── kube-prometheus-stack/
-│   └── ingress-nginx/
+│   └── traefik/              HTTPS reverse proxy
 ├── k8s/                      Custom manifests applied once the operators run
-│   ├── cert-manager/         Issuers and certificates
+│   ├── namespaces/           Namespaces needed before the Helm releases
+│   ├── cert-manager/         Self-signed ClusterIssuer, Grafana certificate
 │   ├── monitoring/           Prometheus, Alertmanager, ServiceMonitors, rules
 │   ├── grafana/              Dashboards
-│   └── ingress/              HTTPS reverse proxy
+│   └── ingress/              Grafana Ingress served by Traefik
 └── docs/
     └── CONSIGNES.md          The brief
 ```
@@ -80,6 +83,14 @@ Logs of every run are appended to `.logs/`, one file per script.
 
 - [Install with Helm](https://cert-manager.io/docs/installation/helm/)
 - [SelfSigned issuer](https://cert-manager.io/docs/configuration/selfsigned/)
+- [Certificate resource](https://cert-manager.io/docs/usage/certificate/)
+
+**Reverse proxy**
+
+- [Traefik](https://doc.traefik.io/traefik/)
+- [Traefik Kubernetes Ingress provider](https://doc.traefik.io/traefik/providers/kubernetes-ingress/)
+- [Traefik Helm chart](https://github.com/traefik/traefik-helm-chart)
+- Traefik replaces [ingress-nginx](https://github.com/kubernetes/ingress-nginx), whose repository is archived
 
 **Monitoring**
 
