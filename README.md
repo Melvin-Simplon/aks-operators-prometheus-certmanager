@@ -33,9 +33,12 @@
 ├── scripts/                  The logic behind each target
 │   ├── lib.sh                Shared helpers: Ansible style output, log file
 │   ├── kube.sh               Shared Kubernetes helpers: context, reachability
+│   ├── helm.sh               Shared Helm helpers: release definition, config checksum
 │   ├── terraform.sh          init, fmt, validate, plan, confirmed apply
 │   ├── helm-release.sh       Idempotent install or upgrade of one Helm release
-│   └── k8s-apply.sh          Applies k8s/<component>/, waits for Ready resources
+│   ├── k8s-apply.sh          Applies k8s/<component>/, waits for Ready resources
+│   ├── status.sh             Read-only health report behind `make status`
+│   └── traefik-dashboard.sh  Port-forward to the Traefik dashboard, never exposed
 ├── terraform/                Azure side
 │   ├── imports.tf            Brings the existing AKS cluster under Terraform
 │   ├── main.tf               Cluster, monitoring node pool, static public IP
