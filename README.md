@@ -13,9 +13,8 @@
 <p align="center"><sub>Contributors</sub></p>
 
 <p align="center">
-  <a href="https://github.com/Melvin-Simplon/aks-operators-prometheus-certmanager/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=Melvin-Simplon/aks-operators-prometheus-certmanager" alt="Contributors" />
-  </a>
+  <a href="https://github.com/WhiteMuush"><img src="https://github.com/WhiteMuush.png" width="56" alt="WhiteMuush" /></a>
+  <a href="https://github.com/jaims-31"><img src="https://github.com/jaims-31.png" width="56" alt="jaims-31" /></a>
 </p>
 
 <br/>
