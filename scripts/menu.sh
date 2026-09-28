@@ -191,7 +191,6 @@ run_target() {
 }
 
 main() {
-    clear
     (( $# >= 1 )) || usage
     parse_targets "$@"
 
@@ -203,6 +202,9 @@ main() {
     trap 'printf "\n"' INT
     local target
     while true; do
+        # Only here, in the interactive loop: outside a terminal clear prints escape codes,
+        # and it fails (set -e) when TERM is unset
+        clear 2> /dev/null || true
         print_menu
         target="$(read_choice)"
         [[ -n "${target}" ]] || break
