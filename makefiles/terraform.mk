@@ -1,4 +1,4 @@
-##@ Terraform
+##@ Azure infrastructure
 
 .PHONY: tf-check tf-plan tf-apply
 
