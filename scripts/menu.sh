@@ -9,7 +9,7 @@ set -euo pipefail
 : "${MAKE:=make}"
 
 # Section display order, unknown sections come last
-readonly SECTION_ORDER=("Terraform" "Helm releases" "Kubernetes manifests" "General")
+readonly SECTION_ORDER=("Azure infrastructure" "Deploy the stack" "Access" "Checks")
 # One accent color (256 color code, purple) and a grey for descriptions
 readonly ACCENT=141
 readonly MUTED=245

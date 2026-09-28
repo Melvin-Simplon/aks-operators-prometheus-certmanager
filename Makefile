@@ -11,6 +11,6 @@ LOG_DIR      ?= .logs
 export TF_DIR KUBE_CONTEXT DOMAIN LOG_DIR
 
 include makefiles/terraform.mk
-include makefiles/helm.mk
-include makefiles/k8s.mk
+include makefiles/deploy.mk
+include makefiles/access.mk
 include makefiles/common.mk

@@ -1,4 +1,4 @@
-##@ General
+##@ Checks
 
 .PHONY: menu status lint
 
