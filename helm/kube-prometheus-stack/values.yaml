@@ -61,7 +61,23 @@ prometheus-node-exporter:
     - operator: Exists
 
 grafana:
-  enabled: false
+  enabled: true
+  nodeSelector:
+    agentpool: monitoring
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: monitoring
+      effect: NoSchedule
+  deploymentStrategy:
+    type: Recreate
+  persistence:
+    enabled: true
+    type: pvc
+    storageClassName: managed-csi
+    accessModes:
+      - ReadWriteOnce
+    size: 5Gi
 
 kubeEtcd:
   enabled: false
