@@ -14,6 +14,8 @@ LOG_FILE="${LOG_DIR:-.logs}/helm.log"
 source "${SCRIPT_DIR}/lib.sh"
 # shellcheck source=scripts/kube.sh
 source "${SCRIPT_DIR}/kube.sh"
+# shellcheck source=scripts/helm.sh
+source "${SCRIPT_DIR}/helm.sh"
 
 : "${HELM_TIMEOUT:=5m}"
 readonly HELM_TIMEOUT
@@ -21,33 +23,6 @@ readonly HELM_TIMEOUT
 usage() {
     printf 'Usage: %s <release>\n' "$(basename "$0")" >&2
     exit 2
-}
-
-load_release() {
-    local release_dir="${ROOT_DIR}/helm/${RELEASE}"
-    RELEASE_ENV="${release_dir}/release.env"
-    VALUES_FILE="${release_dir}/values.yaml"
-    [[ -f "${RELEASE_ENV}" ]] || fatal "${RELEASE_ENV} not found"
-    [[ -f "${VALUES_FILE}" ]] || fatal "${VALUES_FILE} not found"
-    # shellcheck source=/dev/null
-    source "${RELEASE_ENV}"
-    [[ -n "${CHART:-}" && -n "${VERSION:-}" && -n "${NAMESPACE:-}" ]] \
-        || fatal "${RELEASE_ENV} must define CHART, VERSION and NAMESPACE"
-}
-
-# Prints the checksum of everything that defines the release
-config_checksum() {
-    { printf '%s\n%s\n%s\n' "${CHART}" "${VERSION}" "${NAMESPACE}"; cat "${VALUES_FILE}"; } \
-        | sha256sum | cut -d' ' -f1
-}
-
-# Prints "<status> <description>" of the last revision, or nothing if the release does not exist
-current_revision() {
-    local history status description
-    history="$(helm --kube-context "${KUBE_CONTEXT}" history "${RELEASE}" -n "${NAMESPACE}" --max 1 -o yaml 2> /dev/null)" || return 0
-    status="$(sed -n 's/^  status: //p' <<< "${history}")"
-    description="$(sed -n 's/^  description: //p' <<< "${history}")"
-    printf '%s %s' "${status}" "${description}"
 }
 
 deploy_release() {
