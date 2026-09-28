@@ -11,4 +11,5 @@ export TF_DIR KUBE_CONTEXT LOG_DIR
 
 include makefiles/terraform.mk
 include makefiles/helm.mk
+include makefiles/k8s.mk
 include makefiles/common.mk
