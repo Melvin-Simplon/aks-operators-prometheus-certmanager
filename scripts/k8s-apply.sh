@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Apply the manifests of k8s/<component>/, in the given order, then wait for the
+# Apply the manifests of k8s/<component>/ (plain files, or kustomize when the directory holds a
+# kustomization.yaml), in the given order, then wait for the
 # resources that report a Ready condition (issuers, certificates).
 # Usage: k8s-apply.sh <component> [<component>...]
 # Env: KUBE_CONTEXT, LOG_DIR, READY_TIMEOUT
@@ -27,6 +28,15 @@ component_dir() {
     printf '%s/k8s/%s' "${ROOT_DIR}" "$1"
 }
 
+# Prints "-k" for a kustomize directory (kustomization.yaml), "-f" for plain manifests
+source_flag() {
+    if [[ -f "$(component_dir "$1")/kustomization.yaml" ]]; then
+        printf '%s' "-k"
+    else
+        printf '%s' "-f"
+    fi
+}
+
 check_components() {
     local component
     for component in "$@"; do
@@ -39,7 +49,7 @@ apply_component() {
     local component="$1" dir out line object action
     dir="$(component_dir "${component}")"
     task "kubectl : apply k8s/${component}"
-    if ! out="$(kctl apply -f "${dir}" 2>&1)"; then
+    if ! out="$(kctl apply "$(source_flag "${component}")" "${dir}" 2>&1)"; then
         log_file "${out}"
         printf '%s\n' "${out}" >&2
         fatal "kubectl apply failed for k8s/${component}"
@@ -74,7 +84,7 @@ wait_component_ready() {
             done < <(kctl describe "${kind}/${name}" "${ns_args[@]}" 2>&1 | sed -n '/^Status:/,$p' | head -20)
             fatal "${kind}/${name} not ready after ${READY_TIMEOUT}"
         fi
-    done < <(kctl get -f "$(component_dir "${component}")" \
+    done < <(kctl get "$(source_flag "${component}")" "$(component_dir "${component}")" \
         -o custom-columns=KIND:.kind,NS:.metadata.namespace,NAME:.metadata.name --no-headers)
 }
 
