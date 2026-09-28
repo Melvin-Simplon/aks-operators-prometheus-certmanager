@@ -46,5 +46,5 @@ startupapicheck:
 prometheus:
   enabled: true
   servicemonitor:
-    # Turned on once the Prometheus operator CRDs are installed
-    enabled: false
+    # Scraped by the kube-prometheus-stack Prometheus, which selects every ServiceMonitor
+    enabled: true
