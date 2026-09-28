@@ -1,11 +1,9 @@
 ##@ General
 
-.PHONY: help status lint
+.PHONY: menu status lint
 
-help: ## Show available targets
-	@awk 'BEGIN { FS = ":[^#]*## " } \
-		/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5); next } \
-		/^[a-zA-Z_-]+:[^#]*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+menu: ## Interactive menu of every target
+	@MAKE="$(MAKE)" scripts/menu.sh $(MAKEFILE_LIST)
 
 status: ## Read-only health report of the whole stack
 	@scripts/status.sh
