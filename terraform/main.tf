@@ -96,3 +96,18 @@ resource "azurerm_kubernetes_cluster_node_pool" "monitoring" {
     max_unavailable = "1"
   }
 }
+
+# Static IP for the reverse proxy Service, kept when the Service or the LB is recreated.
+# Lives in the node resource group, where the cluster identity already has rights.
+resource "azurerm_public_ip" "ingress" {
+  name                = "pip-ingress"
+  location            = azurerm_kubernetes_cluster.main.location
+  resource_group_name = azurerm_kubernetes_cluster.main.node_resource_group
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  domain_name_label   = var.dns_label
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
