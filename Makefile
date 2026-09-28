@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 .SHELLFLAGS := -euo pipefail -c
-.DEFAULT_GOAL := help
+.DEFAULT_GOAL := menu
 
 TF_DIR       ?= terraform
 KUBE_CONTEXT ?= test-steve
