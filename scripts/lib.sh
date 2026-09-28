@@ -90,14 +90,22 @@ play_recap() {
     log_file "${line}"
 }
 
-# Recap, then exit: non-zero when something failed or was unreachable, skipped never fails
+# Counters that make the run fail, scripts override them with their own words
+FAILURE_KEYS=(failed)
+
+# Recap, then exit: non-zero when a failure counter moved or something was unreachable.
+# skipped never fails.
 finish() {
     play_recap
     if (( ${COUNTERS[unreachable]:-0} > 0 )); then
         exit 4
-    elif (( ${COUNTERS[failed]:-0} > 0 )); then
-        exit "${1:-1}"
     fi
+    local key
+    for key in "${FAILURE_KEYS[@]}"; do
+        if (( ${COUNTERS[${key}]:-0} > 0 )); then
+            exit "${1:-1}"
+        fi
+    done
     exit 0
 }
 
